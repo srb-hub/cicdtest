@@ -1,0 +1,93 @@
+_schema-version: "3.2"
+ID: testmta2
+version: 0.0.1
+modules:
+- name: testmta2-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: testmta2-destination-service
+    parameters:
+      content-target: true
+  - name: testmta2_html_repo_host
+    parameters:
+      service-key:
+        name: testmta2_html_repo_host-key
+  - name: uaa_testmta2
+    parameters:
+      service-key:
+        name: uaa_testmta2-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: testapprouter2_testmta2_html_repo_host
+          ServiceInstanceName: testmta2-html5-app-host-service
+          ServiceKeyName: testmta2_html_repo_host-key
+          sap.cloud.service: testapprouter2
+        - Authentication: OAuth2UserTokenExchange
+          Name: testapprouter2_uaa_testmta2
+          ServiceInstanceName: testmta2-xsuaa-service
+          ServiceKeyName: uaa_testmta2-key
+          sap.cloud.service: testapprouter2
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: testmta2-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: testmta2_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - fioriapp.zip
+      name: fioriapp
+      target-path: resources/
+- name: fioriapp
+  type: html5
+  path: fioriapp
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: testmta2-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: testmta2-destination-service
+    service-plan: lite
+- name: testmta2_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: testmta2-html5-app-host-service
+    service-plan: app-host
+- name: uaa_testmta2
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: testmta2-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
